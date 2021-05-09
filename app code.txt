@@ -1,0 +1,731 @@
+classdef app1 < matlab.apps.AppBase
+
+    % Properties that correspond to app components
+    properties (Access = public)
+        UIFigure                       matlab.ui.Figure
+        SeamCarvingToolLabel           matlab.ui.control.Label
+        Image                          matlab.ui.control.Image
+        FORMATDropDown                 matlab.ui.control.DropDown
+        FORMATDropDownLabel            matlab.ui.control.Label
+        widthresizeEditFieldLabel      matlab.ui.control.Label
+        widthresizeEditField           matlab.ui.control.NumericEditField
+        heightresizeEditFieldLabel     matlab.ui.control.Label
+        heightresizeEditField          matlab.ui.control.NumericEditField
+        saveimageButton                matlab.ui.control.Button
+        restartButton                  matlab.ui.control.Button
+        RUNButton                      matlab.ui.control.Button
+        OriginalImageLabel             matlab.ui.control.Label
+        regionremovalSwitchLabel       matlab.ui.control.Label
+        regionremovalSwitch            matlab.ui.control.Switch
+        regionprotectionSwitch_2Label  matlab.ui.control.Label
+        regionprotectionSwitch         matlab.ui.control.Switch
+        DropDown                       matlab.ui.control.DropDown
+        DropDown_2                     matlab.ui.control.DropDown
+        energyinsersionpreventionSwitchLabel  matlab.ui.control.Label
+        energyinsersionpreventionSwitch  matlab.ui.control.Switch
+    end
+
+    
+    properties (Access = private)
+        UpdateButton 
+        pos_neg_text1
+        pos_neg_text2
+        Image_path
+        newImage
+        g_Pre
+        g_I
+        g_I_temp
+        orientation
+        size_to_reduce
+        height
+        width
+        baseFileName
+    end
+    
+    methods (Access = private)
+        
+        function with_enlarge(app)
+            
+            close all;
+            app.g_I = imread(app.Image_path);
+            [app.height, app.width, z] = size(app.g_I);
+            width_resize = app.widthresizeEditField.Value; 
+            new_width = app.width + width_resize;
+            height_resize = app.heightresizeEditField.Value; 
+            new_height = app.height + height_resize;
+
+            if -width_resize > app.width || -height_resize > app.height 
+                opts = struct('WindowStyle','replace',... 
+                'Interpreter','tex');
+                warndlg(['\fontsize{10} reduction values exceed ' ...
+                    'image size.'],'Warning', opts);
+                app.widthresizeEditField.Value = 0;
+                app.heightresizeEditField.Value = 0;
+                return;
+            end
+            
+            if width_resize < height_resize
+                app.orientation = 0;
+                app.g_I = imresize(app.g_I, [new_height NaN]);
+            else
+                app.orientation = 1;
+                app.g_I = imresize(app.g_I, [NaN new_width]);
+            end
+            
+            [height, width, z] = size(app.g_I);
+            abs_change = abs((height - app.height - height_resize) - (width - app.width - width_resize));
+            g_energy_mat = picture_setup(app);
+           
+            if app.orientation == 0
+                g_energy_mat = transpose(g_energy_mat);
+            end
+           
+            app.g_Pre = mexPreProcessing(g_energy_mat, abs_change);
+            BW = app.g_Pre == 0;
+            BW(:,:,2) = BW;
+            BW(:,:,3) = BW(:,:,1);
+            
+            if app.orientation == 0
+                app.g_I = permute(app.g_I, [2 1 3]);
+                app.g_I = permute(reshape(app.g_I(BW == 1),[width - abs_change,height,3]), [2 1 3]);
+            else
+                app.g_I = permute(reshape(app.g_I(BW == 1),[height - abs_change, width,3]), [2 1 3]);
+                app.g_I = permute(app.g_I, [2 1 3]);
+            end
+            
+            imshow(app.g_I);
+            app.newImage = app.g_I;
+        end
+%******************************************************************%
+        function live(app)
+            
+            close all;
+            app.g_I = imread(app.Image_path);
+            width_reduce = -(app.widthresizeEditField.Value); 
+            height_reduce = -(app.heightresizeEditField.Value); 
+            
+            if width_reduce < 0 || height_reduce < 0
+                opts = struct('WindowStyle','replace',... 
+                'Interpreter','tex');
+                warndlg(['\fontsize{10} this format applies to negative reduction values only. make sure' ...
+                    ' one of the fields is set to 0, and the other holds a negative value.'],'Warning', opts);
+                app.widthresizeEditField.Value = 0;
+                app.heightresizeEditField.Value = 0;
+                return;
+            end
+            
+            if width_reduce > 0 && height_reduce > 0
+                opts = struct('WindowStyle','replace',... 
+                'Interpreter','tex');
+                warndlg(['\fontsize{10} this format applies to 1 dimension only. make sure' ...
+                    ' one of the fields is set to 0.'],'Warning', opts);
+                app.widthresizeEditField.Value = 0;
+                app.heightresizeEditField.Value = 0;
+                return;
+            end
+            
+            if width_reduce > 0 
+                app.orientation = 0; %0 is width reduce, 1 is height reduce
+                app.size_to_reduce = width_reduce;
+            else
+                app.orientation = 1;
+                app.size_to_reduce = height_reduce;
+            end
+
+            [app.height, app.width, z] = size(app.g_I);
+            
+            if width_reduce > app.width/2 || height_reduce > app.height/2  
+                opts = struct('WindowStyle','replace',... 
+                'Interpreter','tex');
+                warndlg(['\fontsize{10} reduction values in live mode should not exceed 50%' ...
+                    ' of the original size. to change this, please refer to mexPreProcessing.'],'Warning', opts);
+                app.widthresizeEditField.Value = 0;
+                app.heightresizeEditField.Value = 0;
+                return;
+            end
+            
+            g_energy_mat = picture_setup(app);
+          
+            if app.orientation == 0
+                g_energy_mat = transpose(g_energy_mat);
+                app.g_Pre = mexPreProcessing(g_energy_mat, app.width/2); %max reduce will be 50%
+            else
+                app.g_Pre = mexPreProcessing(g_energy_mat, app.height/2); %max reduce will be 50%
+            end
+            
+            BW = (app.g_Pre == 0 | app.g_Pre > app.size_to_reduce);
+            BW(:,:,2) = BW;
+            BW(:,:,3) = BW(:,:,1);
+            if app.orientation == 0
+                app.g_I_temp = permute(app.g_I, [2 1 3]);
+                app.g_I_temp = permute(reshape(app.g_I_temp(BW == 1),[app.width - app.size_to_reduce,app.height,3]), [2 1 3]);
+            else
+                app.g_I_temp = permute(reshape(app.g_I(BW == 1),[app.height - app.size_to_reduce, app.width,3]), [2 1 3]);
+                app.g_I_temp = permute(app.g_I_temp, [2 1 3]);
+            end
+            
+            imshow(app.g_I_temp);
+            app.newImage = app.g_I_temp;
+        end
+%******************************************************************%
+function seam_view(app, func)
+            
+            close all;
+            app.g_I = imread(app.Image_path);
+            width_reduce = -(app.widthresizeEditField.Value);
+            height_reduce = -(app.heightresizeEditField.Value); 
+            
+            if width_reduce < 0 || height_reduce < 0
+                opts = struct('WindowStyle','replace',... 
+                'Interpreter','tex');
+                warndlg(['\fontsize{10} this format applies to negative reduction values only. make sure' ...
+                    ' both fields hold non-positive values.'],'Warning', opts);
+                app.widthresizeEditField.Value = 0;
+                app.heightresizeEditField.Value = 0;
+                return;
+            end
+            
+            [app.height, app.width, z] = size(app.g_I);
+            if width_reduce > app.width || height_reduce > app.height 
+                opts = struct('WindowStyle','replace',... 
+                'Interpreter','tex');
+                warndlg(['\fontsize{10} reduction values exceed ' ...
+                    'image size.'],'Warning', opts);
+                app.widthresizeEditField.Value = 0;
+                app.heightresizeEditField.Value = 0;
+                return;
+            end
+            
+            g_energy_mat = picture_setup(app);
+            app.g_I = double(app.g_I);
+            
+            g_I_ver = permute(app.g_I, [2 1 3]);
+            g_energy_mat_ver = transpose(g_energy_mat);
+            
+            while width_reduce > 0 && height_reduce >0
+               
+                [seam_sum_hor,g_seam_vec_hor, g_new_hor, g_energy_mat] = func(g_energy_mat, app.g_I);
+                [seam_sum_ver,g_seam_vec_ver, g_new_ver, g_energy_mat_ver] = func(g_energy_mat_ver, g_I_ver);
+                
+                 if (seam_sum_hor)/(size(g_seam_vec_hor,1)) < (seam_sum_ver)/(size(g_seam_vec_ver,1))
+                     height_reduce = height_reduce - 1;
+                     for j = 1:size(g_seam_vec_hor,1)
+                         app.g_I(g_seam_vec_hor(j, 1), j, :) = [255, 0, 0];
+                     end
+                     imshow(uint8(app.g_I));
+                     app.g_I = g_new_hor;
+                     g_I_ver = permute(app.g_I, [2 1 3]);
+                     g_energy_mat_ver = transpose(g_energy_mat);
+                else
+                    width_reduce = width_reduce - 1;
+                    for j = 1:size(g_seam_vec_ver,1)
+                         g_I_ver(g_seam_vec_ver(j, 1), j, :) = [255, 0, 0];
+                    end
+                     imshow(uint8(permute(g_I_ver, [2 1 3])));
+                     g_I_ver = g_new_ver;
+                     app.g_I = permute(g_I_ver, [2 1 3]);
+                     g_energy_mat = transpose(g_energy_mat_ver);
+                end
+            end
+            
+            if width_reduce > 0
+                vertical_func(app, g_I_ver, g_energy_mat_ver, width_reduce,func);
+                app.newImage = app.g_I;
+            else
+                horizontal_func(app, g_energy_mat, height_reduce,func);
+                app.newImage = permute(app.g_I, [2 1 3]);
+            end      
+            
+        end
+%******************************************************************%
+
+function vertical_func(app, g_I, g_energy_mat, width, func)
+            
+            for i =1:width
+                [g_acc_mat,g_seam_vec, g_new, g_energy_mat] = func(g_energy_mat, g_I);%%TODO: dd here energy map...
+                     for j = 1:size(g_seam_vec,1)
+                         g_I(g_seam_vec(j, 1), j, :) = [255, 0, 0];
+                     end
+            imshow(uint8(permute(g_I, [2 1 3])));
+            g_I = g_new;
+            end
+            
+            imshow(uint8(permute(g_I, [2 1 3])));
+            app.g_I = permute(uint8(g_I), [2 1 3]);
+        end
+%******************************************************************%           
+function horizontal_func(app, g_energy_mat, height, func)
+            
+            for i =1:height
+                [g_acc_mat,g_seam_vec, g_new, g_energy_mat] = func(g_energy_mat, app.g_I);%%TODO: dd here energy map...
+                     for j = 1:size(g_seam_vec,1)
+                         app.g_I(g_seam_vec(j, 1), j, :) = [255, 0, 0];
+                     end
+            imshow(uint8(app.g_I));
+            app.g_I = g_new;
+            end
+            
+            imshow(uint8(app.g_I));
+            app.g_I = permute(uint8(app.g_I), [2 1 3]);
+        end      
+%******************************************************************%           
+        function l_energy_matrix = picture_setup(app)
+             
+            figure('Name','Seam Carving Tool','NumberTitle','off')
+            imshow(app.g_I);
+            l_relevantPixels = [];
+            l_relevantPixels_remove = [];
+            
+            if strcmpi(app.regionprotectionSwitch.Value, 'On')
+                for i = 1:str2num(app.DropDown.Value(1))
+                    l_h=drawfreehand(gca,'Color','g');
+                    l_roi=createMask(l_h);
+                    [l_row,l_col]=find(l_roi);
+                    l_relevantPixels = [l_relevantPixels;[l_row,l_col]];
+                end
+            end
+            
+            if strcmpi(app.regionremovalSwitch.Value, 'On')
+                for i = 1:str2num(app.DropDown_2.Value(1))
+                    l_remove=drawfreehand(gca,'Color','r');
+                    l_roi_remove = createMask(l_remove);
+                    [l_row_remove,l_col_remove]=find(l_roi_remove);
+                    l_relevantPixels_remove = [l_relevantPixels_remove;[l_row_remove,l_col_remove]];
+                end
+            end
+            
+            l_energy_matrix = calc_energy_matrix(app);
+            maxVal = max(l_energy_matrix, [], 'all');
+            l_energy_matrix = l_energy_matrix/maxVal; %normalizing the matrix, might be easier to calculate seams
+            l_maxVal = max(l_energy_matrix, [], 'all');
+
+            if strcmpi(app.regionprotectionSwitch.Value, 'On')
+                for j = 1: size(l_relevantPixels,1) 
+                    l_energy_matrix(l_relevantPixels(j,1),l_relevantPixels(j,2)) = l_maxVal; %it's "maxVal" because we dont know the max gardient.
+                end
+            end
+
+            if strcmpi(app.regionremovalSwitch.Value, 'On')
+                for j = 1: size(l_relevantPixels_remove,1) 
+                    l_energy_matrix(l_relevantPixels_remove(j,1),l_relevantPixels_remove(j,2)) = -l_maxVal; 
+                end
+            end
+        end
+%******************************************************************%            
+        function l_energy_matrix = calc_energy_matrix(app)
+            l_grayscaleI = rgb2gray(app.g_I); 
+            [l_Gx,l_Gy] = imgradientxy(l_grayscaleI);
+            [l_Gmag,l_Gdir] = imgradient(l_Gx,l_Gy);
+            l_energy_matrix = l_Gmag;
+        end
+%******************************************************************%
+        function UpdateButtonPushed(app, event)
+            
+            if isempty(app.g_I_temp) 
+                opts = struct('WindowStyle','replace',... 
+                'Interpreter','tex');
+                warndlg(['\fontsize{10} please "RUN" this format first.'],'Warning', opts);
+                return;
+            end
+                
+            width_reduce = -(app.widthresizeEditField.Value); 
+            height_reduce = -(app.heightresizeEditField.Value); 
+
+            if width_reduce < 0 || height_reduce < 0
+                opts = struct('WindowStyle','replace',... 
+                'Interpreter','tex');
+                warndlg(['\fontsize{10} this format applies to negative reduction values only. make sure' ...
+                    ' one of the fields is set to 0, and the other holds a negative value.'],'Warning', opts);
+                app.widthresizeEditField.Value = 0;
+                app.heightresizeEditField.Value = 0;
+                return;
+            end
+            
+            if width_reduce > 0 && height_reduce > 0
+                opts = struct('WindowStyle','replace',... 
+                'Interpreter','tex');
+                warndlg(['\fontsize{10} this format applies to 1 dimension only. make sure' ...
+                    ' one of the fields is set to 0.'],'Warning', opts);
+                app.widthresizeEditField.Value = 0;
+                app.heightresizeEditField.Value = 0;
+                return;
+            end
+            
+            if width_reduce > 0 
+                orientation_temp = 0; %0 is width reduce, 1 is height reduce
+                app.size_to_reduce = width_reduce;
+            else
+                orientation_temp = 1;
+                app.size_to_reduce = height_reduce;
+            end
+            
+            if ~orientation_temp == app.orientation
+                opts = struct('WindowStyle','replace',... 
+                'Interpreter','tex');
+                warndlg(['\fontsize{10} orientation in live mode should not change.'],'Warning', opts);
+                app.widthresizeEditField.Value = 0;
+                app.heightresizeEditField.Value = 0;
+                return;
+            end
+            
+            app.orientation = orientation_temp;
+
+            if width_reduce > app.width/2 || height_reduce > app.height/2  
+                opts = struct('WindowStyle','replace',... 
+                'Interpreter','tex');
+                warndlg(['\fontsize{10} reduction values in live mode should not exceed 50%' ...
+                    ' of the original size. to change this, please refer to mexPreProcessing.'],'Warning', opts);
+                app.widthresizeEditField.Value = 0;
+                app.heightresizeEditField.Value = 0;
+                return;
+            end
+            
+            BW = (app.g_Pre == 0 | app.g_Pre > app.size_to_reduce);
+            BW(:,:,2) = BW;
+            BW(:,:,3) = BW(:,:,1);
+            
+            if app.orientation == 0
+                app.g_I_temp = permute(app.g_I, [2 1 3]);
+                app.g_I_temp = permute(reshape(app.g_I_temp(BW == 1),[app.width - app.size_to_reduce,app.height,3]), [2 1 3]);
+            else
+                app.g_I_temp = permute(reshape(app.g_I(BW == 1),[app.height - app.size_to_reduce, app.width,3]), [2 1 3]);
+                app.g_I_temp = permute(app.g_I_temp, [2 1 3]);
+            end
+
+            imshow(app.g_I_temp);
+            app.newImage = app.g_I_temp;
+        end
+        
+    end
+    
+
+    % Callbacks that handle component events
+    methods (Access = private)
+
+        % Code that executes after component creation
+        function startupFcn(app)
+             close all;
+             app.UIFigure.Name = 'Seam Carving App';
+             app.Image.ImageSource ='press.png';
+             app.widthresizeEditField.Value = 0;
+             app.heightresizeEditField.Value = 0;
+             app.Image_path = '';
+             app.baseFileName = 'press.png';
+             app.regionprotectionSwitch.Value = 'Off';
+             app.regionremovalSwitch.Value = 'Off';
+             %app.energyinsersionpreventionSwitch.Visible  = 'off';
+             app.DropDown.Value = '1 region';
+             app.DropDown_2.Value = '1 region';
+             app.g_I = [];
+             app.g_Pre = [];
+             app.newImage = [];
+             app.orientation = 0;
+             app.size_to_reduce = 0;
+             app.width = 0;
+             app.height = 0;
+             app.g_I_temp = [];
+             
+             
+             %create UpdateButton:
+             app.UpdateButton = uibutton(app.UIFigure, 'push');
+             app.UpdateButton.ButtonPushedFcn = createCallbackFcn(app, @UpdateButtonPushed, true);
+             app.UpdateButton.FontWeight = 'bold';
+             app.UpdateButton.Position = [393 33 92 22];
+             app.UpdateButton.Text = 'UPDATE';
+             set(app.UpdateButton,'visible','off');
+             %create pos_neg_text1,2:
+             app.pos_neg_text1 = uilabel(app.UIFigure);
+             app.pos_neg_text1.HorizontalAlignment = 'right';
+             app.pos_neg_text1.FontWeight = 'bold';
+             app.pos_neg_text1.Position = [2 324 78 22];
+             app.pos_neg_text1.Text = '+ or -';
+             
+             app.pos_neg_text2 = uilabel(app.UIFigure);
+             app.pos_neg_text2.HorizontalAlignment = 'right';
+             app.pos_neg_text2.FontWeight = 'bold';
+             app.pos_neg_text2.Position = [180 324 78 22];
+             app.pos_neg_text2.Text = '+ or -';
+
+             set(app.pos_neg_text1,'visible','off');
+             set(app.pos_neg_text2,'visible','off');
+        end
+
+        % Button pushed function: RUNButton
+        function RUNButtonPushed(app, event)
+            if strcmpi (app.baseFileName, 'press.png')
+                opts = struct('WindowStyle','replace',... 
+                'Interpreter','tex');
+                warndlg(['\fontsize{10} please pick an image with the following ' ...
+                    'extensions: .jpg, .png, .bmp.'],'Warning', opts);
+                app.baseFileName = 'press.png';
+                return;
+            end
+            value = app.FORMATDropDown.Value;
+            if strcmpi(value,'seam view')
+                if strcmpi(app.energyinsersionpreventionSwitch.Value, 'Off')
+                    seam_view(app, @mexHorOrVer);
+                else
+                    seam_view(app, @mexSeamImprove);
+                end
+            elseif strcmpi(value,'live size reduce - 1D')
+                live(app);
+            else 
+                with_enlarge(app);
+            end    
+        end
+
+        % Button pushed function: restartButton
+        function restartButtonPushed(app, event)
+           
+            close all;
+            app.Image.ImageSource ='press.png';
+            app.widthresizeEditField.Value = 0;
+            app.heightresizeEditField.Value = 0;
+            app.Image_path = '';
+            app.baseFileName = 'press.png';
+            app.regionprotectionSwitch.Value = 'Off';
+            app.regionremovalSwitch.Value = 'Off';
+            app.energyinsersionpreventionSwitch.Value = 'Off';
+            app.DropDown.Value = '1 region';
+            app.DropDown_2.Value = '1 region';
+            app.g_I = [];
+            app.g_Pre = [];
+            app.newImage = [];
+            app.orientation = 0;
+            app.size_to_reduce = 0;
+            app.width = 0;
+            app.height = 0;
+            app.g_I_temp = [];
+             
+        end
+
+        % Image clicked function: Image
+        function ImageClicked(app, event)
+           
+            value = app.FORMATDropDown.Value;
+            if strcmpi(value,'live size reduce - 1D')
+                app.g_I_temp = [];
+            end
+            baseFileNameOld = app.baseFileName;
+            [baseFileName, folder] = uigetfile({'*.jpg';'*.png';'*.bmp'});
+            app.baseFileName = baseFileName;
+            [fPath, fName, fExt] = fileparts(app.baseFileName);
+            switch (fExt)
+                case {'.jpg', '.png', '.bmp'}
+                    l_path = fullfile(folder, app.baseFileName);
+                    app.Image_path = l_path;
+                    app.Image.ImageSource = l_path;
+                otherwise
+                    opts = struct('WindowStyle','replace',... 
+                    'Interpreter','tex');
+                    warndlg(['\fontsize{10} please pick an image with the following ' ...
+                        'extensions: .jpg, .png, .bmp.'],'Warning', opts);
+                    app.baseFileName = baseFileNameOld;
+                    return;
+            end
+        end
+
+        % Button pushed function: saveimageButton
+        function saveimageButtonPushed(app, event)
+            
+            startingFolder = userpath; 
+            defaultFileName = fullfile(startingFolder, '*.png');
+            [baseFileName, folder] = uiputfile(defaultFileName, 'Specify a file');
+            if baseFileName == 0
+              return;
+            end
+            fullFileName = fullfile(folder, baseFileName);
+            imwrite(app.newImage, fullFileName);
+        end
+
+        % Value changed function: FORMATDropDown
+        function FORMATDropDownValueChanged(app, event)
+
+            set(app.pos_neg_text1,'visible','off');
+            set(app.pos_neg_text2,'visible','off');
+            value = app.FORMATDropDown.Value;
+            
+            if strcmpi(value,'resizing (enlarging inc.)')
+                set(app.UpdateButton,'visible','off');
+                set(app.pos_neg_text1,'visible','on');
+                set(app.pos_neg_text2,'visible','on');
+                app.energyinsersionpreventionSwitch.Visible  = 'off';
+                app.energyinsersionpreventionSwitchLabel.Visible = 'off';
+            
+            elseif strcmpi(value,'live size reduce - 1D')
+                set(app.UpdateButton,'visible','on');
+                app.energyinsersionpreventionSwitch.Visible  = 'off';
+                app.energyinsersionpreventionSwitchLabel.Visible = 'off';
+            else
+                set(app.UpdateButton,'visible','off');
+                app.energyinsersionpreventionSwitch.Visible  = 'on';
+                app.energyinsersionpreventionSwitchLabel.Visible = 'on';
+            end
+        end
+    end
+
+    % Component initialization
+    methods (Access = private)
+
+        % Create UIFigure and components
+        function createComponents(app)
+
+            % Create UIFigure and hide until all components are created
+            app.UIFigure = uifigure('Visible', 'off');
+            app.UIFigure.Position = [100 100 640 480];
+            app.UIFigure.Name = 'MATLAB App';
+
+            % Create SeamCarvingToolLabel
+            app.SeamCarvingToolLabel = uilabel(app.UIFigure);
+            app.SeamCarvingToolLabel.HorizontalAlignment = 'center';
+            app.SeamCarvingToolLabel.FontSize = 20;
+            app.SeamCarvingToolLabel.FontWeight = 'bold';
+            app.SeamCarvingToolLabel.Position = [189 423 278 32];
+            app.SeamCarvingToolLabel.Text = 'Seam Carving Tool';
+
+            % Create Image
+            app.Image = uiimage(app.UIFigure);
+            app.Image.ImageClickedFcn = createCallbackFcn(app, @ImageClicked, true);
+            app.Image.Position = [27 36 348 239];
+
+            % Create FORMATDropDown
+            app.FORMATDropDown = uidropdown(app.UIFigure);
+            app.FORMATDropDown.Items = {'seam view', 'live size reduce - 1D', 'resizing (enlarging inc.)'};
+            app.FORMATDropDown.ValueChangedFcn = createCallbackFcn(app, @FORMATDropDownValueChanged, true);
+            app.FORMATDropDown.Position = [503 350 100 22];
+            app.FORMATDropDown.Value = 'seam view';
+
+            % Create FORMATDropDownLabel
+            app.FORMATDropDownLabel = uilabel(app.UIFigure);
+            app.FORMATDropDownLabel.HorizontalAlignment = 'right';
+            app.FORMATDropDownLabel.Position = [433 350 55 22];
+            app.FORMATDropDownLabel.Text = 'FORMAT';
+
+            % Create widthresizeEditFieldLabel
+            app.widthresizeEditFieldLabel = uilabel(app.UIFigure);
+            app.widthresizeEditFieldLabel.HorizontalAlignment = 'right';
+            app.widthresizeEditFieldLabel.FontWeight = 'bold';
+            app.widthresizeEditFieldLabel.Position = [12 344 78 22];
+            app.widthresizeEditFieldLabel.Text = 'width resize ';
+
+            % Create widthresizeEditField
+            app.widthresizeEditField = uieditfield(app.UIFigure, 'numeric');
+            app.widthresizeEditField.FontWeight = 'bold';
+            app.widthresizeEditField.Position = [105 338 62 34];
+
+            % Create heightresizeEditFieldLabel
+            app.heightresizeEditFieldLabel = uilabel(app.UIFigure);
+            app.heightresizeEditFieldLabel.HorizontalAlignment = 'right';
+            app.heightresizeEditFieldLabel.FontWeight = 'bold';
+            app.heightresizeEditFieldLabel.Position = [184 344 82 22];
+            app.heightresizeEditFieldLabel.Text = 'height resize ';
+
+            % Create heightresizeEditField
+            app.heightresizeEditField = uieditfield(app.UIFigure, 'numeric');
+            app.heightresizeEditField.FontWeight = 'bold';
+            app.heightresizeEditField.Position = [281 338 62 34];
+
+            % Create saveimageButton
+            app.saveimageButton = uibutton(app.UIFigure, 'push');
+            app.saveimageButton.ButtonPushedFcn = createCallbackFcn(app, @saveimageButtonPushed, true);
+            app.saveimageButton.Position = [517 196 100 28];
+            app.saveimageButton.Text = 'save image';
+
+            % Create restartButton
+            app.restartButton = uibutton(app.UIFigure, 'push');
+            app.restartButton.ButtonPushedFcn = createCallbackFcn(app, @restartButtonPushed, true);
+            app.restartButton.Position = [517 111 100 26];
+            app.restartButton.Text = 'restart';
+
+            % Create RUNButton
+            app.RUNButton = uibutton(app.UIFigure, 'push');
+            app.RUNButton.ButtonPushedFcn = createCallbackFcn(app, @RUNButtonPushed, true);
+            app.RUNButton.Position = [517 282 100 28];
+            app.RUNButton.Text = 'RUN';
+
+            % Create OriginalImageLabel
+            app.OriginalImageLabel = uilabel(app.UIFigure);
+            app.OriginalImageLabel.FontSize = 16;
+            app.OriginalImageLabel.FontWeight = 'bold';
+            app.OriginalImageLabel.Position = [142 282 117 22];
+            app.OriginalImageLabel.Text = 'Original Image';
+
+            % Create regionremovalSwitchLabel
+            app.regionremovalSwitchLabel = uilabel(app.UIFigure);
+            app.regionremovalSwitchLabel.HorizontalAlignment = 'center';
+            app.regionremovalSwitchLabel.FontWeight = 'bold';
+            app.regionremovalSwitchLabel.Position = [393 75 92 22];
+            app.regionremovalSwitchLabel.Text = 'region removal';
+
+            % Create regionremovalSwitch
+            app.regionremovalSwitch = uiswitch(app.UIFigure, 'slider');
+            app.regionremovalSwitch.FontWeight = 'bold';
+            app.regionremovalSwitch.Position = [420 104 39 17];
+
+            % Create regionprotectionSwitch_2Label
+            app.regionprotectionSwitch_2Label = uilabel(app.UIFigure);
+            app.regionprotectionSwitch_2Label.HorizontalAlignment = 'center';
+            app.regionprotectionSwitch_2Label.FontWeight = 'bold';
+            app.regionprotectionSwitch_2Label.Position = [387 183 104 22];
+            app.regionprotectionSwitch_2Label.Text = 'region protection';
+
+            % Create regionprotectionSwitch
+            app.regionprotectionSwitch = uiswitch(app.UIFigure, 'slider');
+            app.regionprotectionSwitch.FontWeight = 'bold';
+            app.regionprotectionSwitch.Position = [422 207 39 17];
+
+            % Create DropDown
+            app.DropDown = uidropdown(app.UIFigure);
+            app.DropDown.Items = {'1 region', '2 regions', '3 regions', ''};
+            app.DropDown.Position = [390 230 100 22];
+            app.DropDown.Value = '1 region';
+
+            % Create DropDown_2
+            app.DropDown_2 = uidropdown(app.UIFigure);
+            app.DropDown_2.Items = {'1 region', '2 regions', '3 regions', ''};
+            app.DropDown_2.Position = [391 130 100 22];
+            app.DropDown_2.Value = '1 region';
+
+            % Create energyinsersionpreventionSwitchLabel
+            app.energyinsersionpreventionSwitchLabel = uilabel(app.UIFigure);
+            app.energyinsersionpreventionSwitchLabel.HorizontalAlignment = 'center';
+            app.energyinsersionpreventionSwitchLabel.Position = [476 399 153 22];
+            app.energyinsersionpreventionSwitchLabel.Text = {'energy insersion prevention'; ''};
+
+            % Create energyinsersionpreventionSwitch
+            app.energyinsersionpreventionSwitch = uiswitch(app.UIFigure, 'slider');
+            app.energyinsersionpreventionSwitch.Position = [530 419 45 20];
+
+            % Show the figure after all components are created
+            app.UIFigure.Visible = 'on';
+        end
+    end
+
+    % App creation and deletion
+    methods (Access = public)
+
+        % Construct app
+        function app = app1
+
+            % Create UIFigure and components
+            createComponents(app)
+
+            % Register the app with App Designer
+            registerApp(app, app.UIFigure)
+
+            % Execute the startup function
+            runStartupFcn(app, @startupFcn)
+
+            if nargout == 0
+                clear app
+            end
+        end
+
+        % Code that executes before app deletion
+        function delete(app)
+
+            % Delete UIFigure when app is deleted
+            delete(app.UIFigure)
+        end
+    end
+end
