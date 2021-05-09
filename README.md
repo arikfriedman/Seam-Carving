@@ -146,6 +146,50 @@ It can be added “on top” of the basic energy calculation we reviewed earlier
 ![image](https://user-images.githubusercontent.com/82894689/117581384-1dedab00-b105-11eb-9d59-af17cc45f572.png)
 
 # Later Works
+Panozzo et al. (Robust Image Retargeting via Axis-Aligned Deformation, 2012).
+The work focuses on continuous retargeting.
+In contrast so “seam – carving”, the suggested approach doesn’t look for seams to “remove”, rather tries to warp the image as less as possible in the “important” parts, and allows more warping in “unimportant” parts.
+Results usually look smoother, but sometimes carving might be preferable (object removal for example).
+
+![image](https://user-images.githubusercontent.com/82894689/117581411-4bd2ef80-b105-11eb-92fb-81b0d63fc5a5.png)
+
+![image](https://user-images.githubusercontent.com/82894689/117581423-53929400-b105-11eb-8f90-e0e2e62dcd97.png)
+
+![image](https://user-images.githubusercontent.com/82894689/117581429-6016ec80-b105-11eb-825e-0a541ab4fa77.png)
+
+# Later Works – Cont.: Deep Learning Methods
+Zhao et al. – “Saliency Detection by Multi-Context Deep Learning”, CVPR 2015:
+Low-level saliency cues or priors do not produce good enough saliency detection results, especially when the salient object presents in a low-contrast background with confusing visual appearance.
+Deep Convolutional Neural Networks are employed to model saliency of objects in images. Global context and local context are both taken into account, and are jointly modeled in a unified multi-context deep learning framework.
+
+![image](https://user-images.githubusercontent.com/82894689/117581460-82a90580-b105-11eb-8258-4bb981633999.png)
+
+A dark gray house appears in dark yellow bush. Objects like the 
+house cannot be classified as salient objects from the low-contrast 
+background based on “low-level” saliency cues (which are used in the 
+more basic approaches, such as the original “Seam Carving” 2007
+paper) . This advanced  method  enables these kind of classifications. 
+
+# Comparisons to Original Paper
+
+![image](https://user-images.githubusercontent.com/82894689/117581484-a9673c00-b105-11eb-9af4-28ee292a45eb.png)
+
+![image](https://user-images.githubusercontent.com/82894689/117581494-b1bf7700-b105-11eb-8893-3f4c037c7ec2.png)
+
+![image](https://user-images.githubusercontent.com/82894689/117581499-b97f1b80-b105-11eb-9f27-f8756f589077.png)
+
+# References
+- Seam Carving for Content-Aware Image Resizing  (Shamir & Avidan, 2007)
+- Improved Seam Carving for Video Retargeting (Rubinstein, Shamir and Avidan, 2008)
+- Robust Image Retargeting via Axis-Aligned Deformation (Panozzo et al., 2012)
+- Saliency Detection by Multi-Context Deep Learning (Zhao et al., 2015)
+- Seam Carving | Week 2 | 18.S191 MIT Fall 2020 | Grant Sanderson - https://www.youtube.com/watch?v=rpB6zQNsbQU
+
+# Added Files
+
+# How to use this Application
+
+
 
 
 
