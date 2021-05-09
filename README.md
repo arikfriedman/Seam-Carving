@@ -35,7 +35,7 @@ Problem with previous works:
 All these methods achieve impressive results, but rely on traditional image resizing and cropping operations to actually change the size of the image.
 We want to achieve more “flexibility” when resizing images.
 
-#Saliency Maps – Cont.
+# Saliency Maps – Cont.
 Finding a good saliency map, and actually resizing an image, are two different problems – each can be solved separately.  
 Different saliency maps can result in different image resizing – we can choose between many methods, according to what we would like to achieve.
 
@@ -45,7 +45,7 @@ Given a saliency map of some image “G” (the number in each pixel represents 
 
 Let’s say we want to reduce the size of the image “G” by one column. What’s the best way to achieve this?
 
-#Image Resizing
+# Image Resizing
 Reasonable assumption: our goal is to preserve as much energy as possible.
 Different proposals from the paper:
 
@@ -67,6 +67,45 @@ Our current goal is to find a seam s* , such that:
 
 A greedy approach might be fast, but not optimal.
 <b>Solution:</b> use dynamic programming!
+
+![image](https://user-images.githubusercontent.com/82894689/117580977-0f9e8f80-b103-11eb-8f74-4c28bc42a64f.png)
+
+After each seam removal, the energy map changes.
+This fact requires us to compute the dynamic map again after each seam removal.
+
+Seam carving strikes the best balance between the demands for energy preservation and visual coherency:
+
+![image](https://user-images.githubusercontent.com/82894689/117580998-3230a880-b103-11eb-9804-5bdcfeb03472.png)
+
+# Results - Width Reduce
+
+![image](https://user-images.githubusercontent.com/82894689/117581015-4674a580-b103-11eb-8d36-11ec28e5d22f.png)
+
+# Results – Height Reduce 
+
+![image](https://user-images.githubusercontent.com/82894689/117581038-6b691880-b103-11eb-8bfd-e3470abcbeb9.png)
+
+# Image Resizing – Optimal Seam Order (both dimensions)
+
+Sometimes, we want to resize an image in both dimensions (for now let’s assume we want to reduce the size in both dimensions).
+
+![image](https://user-images.githubusercontent.com/82894689/117581071-9bb0b700-b103-11eb-9916-85d8fd92587b.png)
+
+What is the correct order in which we need to remove the seams? 
+
+Optimal solution:
+
+![image](https://user-images.githubusercontent.com/82894689/117581085-b2570e00-b103-11eb-960a-45b9068f5038.png)
+
+Using dynamic programming, we can achieve this optimal result – but it is costly! (running-time wise…)
+
+# Image Enlarging
+<b>Paper’s approach:</b> To enlarge an image we approximate an ‘inversion’ of this time evolution and insert new ‘artificial’ seams to the image. Hence, to enlarge the size of an image I by one we compute the optimal vertical (horizontal) seam s on I and duplicate the pixels of s by averaging them with their left and right neighbors (top and bottom in the horizontal case).
+<b>Downside:</b> since the insertions are “artificial”, the final result might look “artificial” as well…
+
+![image](https://user-images.githubusercontent.com/82894689/117581143-019d3e80-b104-11eb-9d4d-f726d90cd798.png)
+
+Easier approaches can also be implemented (isotropic scaling, and then carving in one dimension, for example - this approach is the one implemented in my implementation of the algorithm).
 
 
 
