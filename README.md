@@ -14,6 +14,7 @@ For our purposes – we are looking for a “map” which would hold each pixel�
 Claim: “edges detection” methods can lead to a good “energy map”.
 
 Shamir & Avidan, 2007 (L1 norm):
+
 ![image](https://user-images.githubusercontent.com/82894689/117580604-64d9a180-b101-11eb-8fd7-aa3e8956d310.png)
 
 
@@ -52,6 +53,7 @@ Different proposals from the paper:
 ![image](https://user-images.githubusercontent.com/82894689/117580826-84bd9500-b102-11eb-9f81-67484f8ad124.png)
 
 we want to get “the best of both worlds” – keeping the energy, while trying not do deform the image too much.
+
 seam: “A seam is a connected path of low energy pixels crossing the image from top to bottom, or from left to right.” (Shamir & Avidan, 2007):
 
 ![image](https://user-images.githubusercontent.com/82894689/117580873-ae76bc00-b102-11eb-9869-9fd4dd09c0cd.png)
@@ -148,7 +150,7 @@ It can be added “on top” of the basic energy calculation we reviewed earlier
 # Later Works
 Panozzo et al. (Robust Image Retargeting via Axis-Aligned Deformation, 2012).
 The work focuses on continuous retargeting.
-In contrast so “seam – carving”, the suggested approach doesn’t look for seams to “remove”, rather tries to warp the image as less as possible in the “important” parts, and allows more warping in “unimportant” parts.
+In contrast to “seam – carving”, the suggested approach doesn’t look for seams to “remove”, rather tries to warp the image as less as possible in the “important” parts, and allows more warping in “unimportant” parts.
 Results usually look smoother, but sometimes carving might be preferable (object removal for example).
 
 ![image](https://user-images.githubusercontent.com/82894689/117581411-4bd2ef80-b105-11eb-92fb-81b0d63fc5a5.png)
@@ -186,8 +188,49 @@ paper) . This advanced  method  enables these kind of classifications.
 - Seam Carving | Week 2 | 18.S191 MIT Fall 2020 | Grant Sanderson - https://www.youtube.com/watch?v=rpB6zQNsbQU
 
 # Added Files
+this project contains several files:
+
+- the MATLAB app .rar file (Seam Carving Application - 21.4.rar) - contains the .exe file and a README file explaining how to use the application.
+- the MATLAB app code (app code.txt)
+- C++ files used in this project 
+- MEX files used in this project (originated from the C++ files)
 
 # How to use this Application
+
+![image](https://user-images.githubusercontent.com/82894689/117581908-0e239600-b108-11eb-842e-d8ab587212ba.png)
+
+<b>INSTRUCTIONS:</b>
+
+this tool contains 3 different formats:
+
+1)seam view - this format enables the user to view seam removals in both dimensions.
+
+2)live size reduce - 1D - this format enables the user to resize the image in one specific dimension in real time.
+
+3)resizing (enlarging inc.) - this format enables the user to resize (reduce or enlarge) the image in both dimensions.
+
+<b>FURTHER EXPLANATIONS:</b>
+
+1)seam view - 
+the user is asked to provide 2 non-positive integers for the seam removal process. this format also comes along with a 
+"energy insertion prevention", which adds the "forward energy" introduced in the later "Improved Seam Carving for Video Retargeting" paper.
+
+2)live size reduce - 1D -
+the user is asked to provide 1 non-positive integer (while the other one remains 0). after clicking the "RUN" button, the user
+can now change the negative value to any value between 0 and 50% the size of the image in that specific dimension, followed
+by a click on the "update" button. a real time change will appear in the figure.
+
+3)resizing (enlarging inc.) -
+the user is asked to provide 2 integers.
+
+<b>ADDITIONAL FEATURES:</b>
+
+1)"save image" button - after running any format, clicking this button enables to user to save the updated image.
+
+2)"restart" button
+
+3)"region protection"/"region removal" - the user is given an option to draw regions in the image which he would like to
+preserve/delete. to use this feature, turn "on" relevant switch, and pick the number of regions to be preserved/deleted. 
 
 
 
