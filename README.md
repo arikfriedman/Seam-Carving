@@ -107,6 +107,54 @@ Using dynamic programming, we can achieve this optimal result – but it is cost
 
 Easier approaches can also be implemented (isotropic scaling, and then carving in one dimension, for example - this approach is the one implemented in my implementation of the algorithm).
 
+# Object Removal / Object Preservation
+soft constraints for object removal / object preservation can be applied by the user.
+This can be implemented by adding “positive energy” to objects which the user would like to preserve, and “lower energy” to objects which the user would like to remove:
+
+![image](https://user-images.githubusercontent.com/82894689/117581221-6c4e7a00-b104-11eb-86a4-0dcd723c335c.png)
+
+![image](https://user-images.githubusercontent.com/82894689/117581228-7a9c9600-b104-11eb-8c71-5620e9e80a90.png)
+
+<b>Find the missing shoe:</b>
+
+![image](https://user-images.githubusercontent.com/82894689/117581250-8f792980-b104-11eb-9709-fa9b3acadf29.png)
+
+# Multi-Size Images (Live Resizing)
+we have assumed that the user knows the target size ahead of time, but this might not be possible in some cases.
+<b>Example:</b> web pages. Designer can’t know ahead of time at what resolution the page will be displayed.
+We would like to achieve “live” resizing.
+To address this issue, we use a representation of multi-size images that encodes an entire range of retargeting. This information has a very low memory footprint, can be computed in a couple of seconds as a pre-processing step, and allows the user to retarget an image continuously in real time.
+
+This process takes a bit more time at first (pre- processing…), but after the first stage, the resizing will run in “real time”!
+Every pixel, except of its “energy”, will also hold the index of the seam that will (potentially) remove it.
+The user then resizes the image, and only the relevant pixels will remain.
+
+![image](https://user-images.githubusercontent.com/82894689/117581311-d23b0180-b104-11eb-8031-0a1fb2df4596.png)
+
+# Modifications
+A problem may arise – since our main concern is to find the “best seam” energy wise,  it’s possible that removing such a seam (so called) adds new energy to the image!
+
+![image](https://user-images.githubusercontent.com/82894689/117581345-f5fe4780-b104-11eb-92bd-f67cb7eefb1e.png)
+
+Our algorithm is not sensitive to such problems… can we fix this?
+
+The forward energy modification was suggested by Rubinstein, Shamir and Avidan (2008).
+It can be added “on top” of the basic energy calculation we reviewed earlier.
+
+![image](https://user-images.githubusercontent.com/82894689/117581375-13cbac80-b105-11eb-94c7-ce670f8fae97.png)
+
+![image](https://user-images.githubusercontent.com/82894689/117581384-1dedab00-b105-11eb-9d59-af17cc45f572.png)
+
+# Later Works
+
+
+
+
+
+
+
+
+
 
 
 
