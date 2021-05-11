@@ -190,7 +190,8 @@ paper) . This advanced  method  enables these kind of classifications.
 # Added Files
 this project contains several files:
 
-- A recording of the lecture (<b>name of file here</b> - the lecture was given at Bar-Ilan Univeristy, May 2021, as part of the "Digital Geometric Processing 2" course)
+- A recording of the lecture (the lecture was given at Bar-Ilan Univeristy, May 2021, as part of the "Digital Geometric Processing 2" course): https://drive.google.com/file/d/1q_Ono-onGnJyOpaV39UIg1lnL5LRMwcn/view?usp=sharing
+
 - A PowerPoint presentation which was used in the lecture (Seam – Carving ppt.pptx)
 - The MATLAB app .rar file (Seam Carving Application - 21.4.rar) - contains the .exe file and a README file explaining how to use the application.
 - The MATLAB app code (app code.txt)
